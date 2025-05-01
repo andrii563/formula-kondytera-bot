@@ -6,7 +6,7 @@ import telegram
 app = Flask(__name__)
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-CHAT_ID = int(os.environ.get("CHAT_ID"))
+CHAT_ID = os.environ.get("CHAT_ID")  # Наприклад: -1002635000565
 
 bot = telegram.Bot(token=BOT_TOKEN)
 
@@ -16,13 +16,11 @@ def webhook():
     print("Отримано webhook:", data)
 
     try:
+        # Перевірка статусу оплати
         if data.get("transactionStatus") == "Approved":
-            order_ref = data.get("orderReference", "")
-            if ":" not in order_ref:
-                return "Невірний формат orderReference", 400
-
-            user_id = int(order_ref.split(":")[1])
+            user_id = int(data["orderReference"].split(":")[1])  # orderReference = "subscription:USER_ID"
             bot.unban_chat_member(chat_id=CHAT_ID, user_id=user_id, only_if_banned=True)
+            bot.invite_link_create(chat_id=CHAT_ID)
             return "OK", 200
         else:
             return "Оплата не підтверджена", 400
