@@ -1,8 +1,11 @@
-import uvicorn
+import asyncio
 
+from hypercorn.asyncio import serve
+from hypercorn.config import Config
 from app.core.config import settings
+from webhook import app
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "webhook:app", host=settings.WEBAPP_HOST, port=settings.WEBAPP_PORT, reload=True
-    )
+    config = Config()
+    config.bind = [f"{settings.WEBAPP_HOST}:{settings.WEBAPP_PORT}"]
+    asyncio.run(serve(app, config))

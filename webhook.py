@@ -1,6 +1,4 @@
 from aiogram import Bot, Dispatcher, types
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
 from fastapi import FastAPI, Request
 
 from app.bot import handlers
@@ -10,9 +8,7 @@ from app.core.logger import logger
 
 app = FastAPI()
 
-bot = Bot(
-    token=settings.API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
+bot = Bot(token=settings.API_TOKEN)
 dp = Dispatcher()
 
 dp.include_router(handlers.router)
@@ -22,7 +18,7 @@ dp.include_router(handlers.router)
 async def on_startup():
     logger.info("Starting bot setup...")
     await setup_commands(bot)
-    await bot.set_webhook(settings.WEBHOOK_URL)
+    await bot.set_webhook(url=settings.WEBHOOK_URL)
     logger.info(f"Webhook set to {settings.WEBHOOK_URL}")
 
 
