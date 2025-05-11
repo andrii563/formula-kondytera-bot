@@ -1,9 +1,15 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.enums import ParseMode
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
+from aiogram.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    CallbackQuery,
+    Message,
+)
 
 from app.core.logger import logger
+from app.payment.wayforpay import send_payment_link
 
 router = Router()
 
@@ -23,8 +29,7 @@ async def handle_start(message: Message):
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text="Перейти до сплати",
-                        callback_data="join_channel"
+                        text="Перейти до сплати", callback_data="payment"
                     )
                 ]
             ]
@@ -37,23 +42,23 @@ async def handle_start(message: Message):
 async def join_channel(query: CallbackQuery):
     logger.info(f"Callback from {query.from_user.full_name}: {query.data}")
     await query.answer("Дякуємо за реєстрацію!", show_alert=True)
-    
 
 
 @router.message()
 async def handle_message(message: Message):
     logger.info(f"Received message: {message.text}")
     await message.answer(
-        "Скористуйтеся вбудованим меня,\n"
-        "Або використайте комагду /start",
+        "Скористуйтеся вбудованим меня,\nАбо використайте команду /start",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="Почати",
-                        callback_data="start"
-                    )
-                ]
+                [InlineKeyboardButton(text="Почати", callback_data="start")]
             ]
         ),
     )
+
+
+@router.callback_query(F.data == "payment")
+async def handle_payment(query: CallbackQuery):
+    user_id = query.from_user.id
+    amount = 600
+    await send_payment_link(query, user_id, amount)

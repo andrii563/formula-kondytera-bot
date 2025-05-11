@@ -26,8 +26,7 @@ class Subscriber(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     telegram_id: Mapped[int] = mapped_column(Integer, unique=True, index=True)
-    username: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    first_name: Mapped[str] = mapped_column(String)
+    username: Mapped[str] = mapped_column(String)
     subscription_type: Mapped[int] = mapped_column(Integer)
     payment_date: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     subscription_end: Mapped[datetime] = mapped_column(DateTime)
