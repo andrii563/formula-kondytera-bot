@@ -7,7 +7,7 @@ SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///db.sqlite3"
 
 engine = create_async_engine(
     SQLALCHEMY_DATABASE_URL,
-    echo=True,  # CHANGE FOR PRODUCTION
+    echo=False,  # CHANGE FOR PRODUCTION
 )
 
 AsyncSessionLocal = sessionmaker(

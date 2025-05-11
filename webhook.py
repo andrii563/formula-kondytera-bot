@@ -1,23 +1,22 @@
+import asyncio
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
 from aiogram import Bot, Dispatcher, types
-from fastapi import FastAPI, Request, Depends
-from contextlib import asynccontextmanager
+from fastapi import Depends, FastAPI, Request
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot import handlers
 from app.bot.commands import setup_commands
 from app.core.config import settings
 from app.core.logger import logger
-from app.database.models import SubscriptionStatus
+from app.database.crud import (get_subscriber, update_subscriber_declined,
+                               update_subscriber_payment)
+from app.database.models import Subscriber, SubscriptionStatus
 from app.database.session import get_session
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database.crud import (
-    update_subscriber_payment,
-    update_subscriber_declined,
-    get_subscriber,
-)
 
 # Error code explanations for declined payments
 DECLINE_REASONS = {
@@ -36,6 +35,7 @@ async def lifespan(app: FastAPI):
     await setup_commands(bot)
     await bot.set_webhook(url=settings.WEBHOOK_URL)
     logger.info(f"Webhook set to {settings.WEBHOOK_URL}")
+    asyncio.create_task(periodic_subscription_check())
     yield
     # Shutdown logic
     logger.info("Shutting down...")
@@ -88,10 +88,10 @@ async def payment_callback(
     order_reference = data["orderReference"]
     user_id = int(order_reference.split("_")[1])
     order_timestamp = int(order_reference.split("_")[2])
+    now = datetime.utcfromtimestamp(order_timestamp)
     status = data.get("transactionStatus")
     reason_code = data.get("reasonCode")
     payment_id = order_reference
-    now = datetime.fromtimestamp(order_timestamp)
 
     # Prepare response for WayForPay
     response_status = "accept"
@@ -179,3 +179,41 @@ def generate_wfp_signature(
 
     sign_string = f"{order_reference};{status};{time_}"
     return hmac.new(secret_key.encode(), sign_string.encode(), hashlib.md5).hexdigest()
+
+
+async def check_expired_subscriptions():
+    async for session in get_session():
+        now = datetime.utcnow()
+        logger.info(f"Текущее время UTC: {now}")
+        result = await session.execute(
+            select(Subscriber).where(
+                Subscriber.subscription_end != None,
+                Subscriber.status == SubscriptionStatus.ACTIVE.value,
+            )
+        )
+        # ---------------------------------------------------------------------------------------------------------------------
+        # test part
+        all_active = result.scalars().all()
+        for sub in all_active:
+            logger.info(f"Пользователь: {sub.telegram_id}, subscription_end: {sub.subscription_end}, статус: {sub.status}")
+        result = await session.execute(
+            select(Subscriber).where(
+                Subscriber.subscription_end != None,
+                Subscriber.subscription_end < now,
+                Subscriber.status == SubscriptionStatus.ACTIVE.value,
+            )
+        )
+        # end test part
+        # ---------------------------------------------------------------------------------------------------------------------
+        expired_subs = result.scalars().all()
+        for sub in expired_subs:
+            logger.info(f"Истёкшая подписка: {sub.telegram_id}, end: {sub.subscription_end}, status: {sub.status}")
+            sub.status = SubscriptionStatus.EXPIRED.value
+        if expired_subs:
+            await session.commit()
+
+async def periodic_subscription_check():
+    while True:
+        logger.info("Checking for expired subscriptions...")
+        await check_expired_subscriptions()
+        await asyncio.sleep(60)  # 5 минут
