@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Optional
 from enum import Enum
+from typing import Optional
 
-from sqlalchemy import DateTime, Integer, String, func
+from sqlalchemy import DateTime, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -28,7 +28,9 @@ class Subscriber(Base):
     telegram_id: Mapped[int] = mapped_column(Integer, unique=True, index=True)
     username: Mapped[str] = mapped_column(String)
     subscription_type: Mapped[int] = mapped_column(Integer)
-    payment_date: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    subscription_end: Mapped[datetime] = mapped_column(DateTime)
+    payment_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    subscription_end: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
     status: Mapped[str] = mapped_column(String, default=SubscriptionStatus.ACTIVE.value)
     payment_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)

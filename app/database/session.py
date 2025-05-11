@@ -1,13 +1,13 @@
-from typing import AsyncGenerator, Any
+from typing import Any, AsyncGenerator
 
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///db.sqlite3"
 
 engine = create_async_engine(
     SQLALCHEMY_DATABASE_URL,
-    echo=True,
+    echo=True,  # CHANGE FOR PRODUCTION
 )
 
 AsyncSessionLocal = sessionmaker(

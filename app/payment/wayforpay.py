@@ -1,11 +1,12 @@
-import hmac
 import hashlib
+import hmac
 import time
 from dataclasses import dataclass
-from aiogram import types
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
 import aiohttp
+from aiogram import types
 from aiogram.exceptions import TelegramAPIError
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.core.config import settings
 
