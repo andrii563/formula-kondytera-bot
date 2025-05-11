@@ -100,7 +100,6 @@ async def payment_callback(
         order_reference, response_status, response_time, settings.MERCHANT_SECRET_KEY
     )
 
-    # Получаем username из базы (он был сохранён при старте оплаты)
     subscriber = await get_subscriber(session, user_id)
     username = subscriber.username if subscriber else ""
 
@@ -146,7 +145,7 @@ async def payment_callback(
             logger.warning(f"Failed to send message to user {user_id}: {e}")
 
     else:
-        # Любой другой отказ
+        # Any other declined payment
         await update_subscriber_declined(
             session=session,
             telegram_id=user_id,

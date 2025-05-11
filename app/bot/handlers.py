@@ -73,7 +73,6 @@ async def handle_payment(query: CallbackQuery):
     user_id = query.from_user.id
     username = query.from_user.username or ""
     async for session in get_session():
-        # upsert подписчика с минимальными данными (без дат)
         await update_subscriber_payment(
             session=session,
             telegram_id=user_id,
