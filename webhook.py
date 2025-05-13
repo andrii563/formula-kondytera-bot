@@ -261,7 +261,7 @@ async def periodic_subscription_check():
     while True:
         logger.info("Checking for expired subscriptions...")
         await ban_expired_users(bot)
-        await asyncio.sleep(60)
+        await asyncio.sleep(300)
 
 
 async def periodic_expiry_notify():
