@@ -1,2 +1,1 @@
-web: gunicorn webhook_server:app
-worker: python bot.py
+web: hypercorn run:app --bind 0.0.0.0:$PORT
