@@ -13,6 +13,7 @@ class Settings:
     MERCHANT_SECRET_KEY = os.getenv("MERCHANT_SECRET_KEY")
     MERCHANT_DOMAIN_NAME = os.getenv("MERCHANT_DOMAIN_NAME")
     PAYMENT_CALLBACK_URL = f"{WEBHOOK_URL.replace('/webhook', '/payment/callback')}"
+    GROUP_CHAT_ID = int(os.getenv("GROUP_CHAT_ID"))
 
 
 settings = Settings()

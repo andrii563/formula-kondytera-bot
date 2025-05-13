@@ -41,8 +41,8 @@ class WayForPayment:
             self.secret_key.encode("utf-8"), sign_string.encode("utf-8"), hashlib.md5
         ).hexdigest()
 
-    def generate_payment_url(self, user_id: int, amount: int) -> str:
-        order_reference = f"order_{user_id}_{int(time.time())}"
+    def generate_payment_url(self, user_id: int, amount: int, days: int) -> str:
+        order_reference = f"order_{user_id}_{int(time.time())}_{days}"
         order_date = int(time.time())
 
         data = {
@@ -64,9 +64,9 @@ class WayForPayment:
         return "https://secure.wayforpay.com/pay", data
 
 
-async def send_payment_link(query: types.CallbackQuery, user_id: int, amount: int):
+async def send_payment_link(query: types.CallbackQuery, user_id: int, amount: int, days: int):
     payment = WayForPayment(settings.MERCHANT_SECRET_KEY)
-    form_url, data = payment.generate_payment_url(user_id, amount)
+    form_url, data = payment.generate_payment_url(user_id, amount, days)
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -82,7 +82,7 @@ async def send_payment_link(query: types.CallbackQuery, user_id: int, amount: in
                             inline_keyboard=[
                                 [
                                     InlineKeyboardButton(
-                                        text="💳 Оплатити 600 грн", url=payment_url
+                                        text=f"💳 Оплатити підписку {amount} грн.", url=payment_url
                                     )
                                 ]
                             ]
