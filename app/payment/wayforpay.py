@@ -13,7 +13,7 @@ from app.core.config import settings
 
 @dataclass
 class PaymentConfig:
-    merchant_account: str = "test_merch_n1"
+    merchant_account: str = "t_me_c9698"
     merchant_domain_name: str = settings.MERCHANT_DOMAIN_NAME
     currency: str = "UAH"
     product_name: str = "Subscription"

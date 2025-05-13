@@ -14,6 +14,7 @@ class Settings:
     MERCHANT_DOMAIN_NAME = os.getenv("MERCHANT_DOMAIN_NAME")
     PAYMENT_CALLBACK_URL = f"{WEBHOOK_URL.replace('/webhook', '/payment/callback')}"
     GROUP_CHAT_ID = int(os.getenv("GROUP_CHAT_ID"))
+    DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 settings = Settings()

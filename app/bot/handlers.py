@@ -29,7 +29,8 @@ async def handle_start(message: Message):
         "- Ексклюзивні майстер-класи 🎨🍫\n"
         "- Поради від шефів 👩‍🍳👨‍🍳\n"
         "- Підтримку та спілкування з іншими кондитерами 💬🍪\n\n"
-        "Оберіть термін підписки:",
+        "Ти можеш отримати доступ до нашого каналу натиснувши на кнопку нижче. 👇\n\n"
+        "Ціна: 600 / 1 місяць 💵",
         parse_mode=ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
@@ -145,7 +146,7 @@ async def handle_message(message: Message):
         return
     logger.info(f"Received message: {message.text}")
     await message.answer(
-        f"Скористуйтеся вбудованим меня,\nАбо використайте команду /start {message.chat.id}",
+        "Скористуйтеся вбудованим меня,\nАбо використайте команду /start",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="Почати", callback_data="start")]

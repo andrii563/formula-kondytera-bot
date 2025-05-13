@@ -21,7 +21,6 @@ from app.database.crud import (
 from app.database.models import Subscriber, SubscriptionStatus
 from app.database.session import get_session
 
-# Error code explanations for declined payments
 DECLINE_REASONS = {
     1101: "Declined by card issuer",
     1102: "Invalid CVV2 code",
@@ -33,7 +32,6 @@ DECLINE_REASONS = {
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup logic
     logger.info("Starting bot setup...")
     await setup_commands(bot)
     await bot.set_webhook(url=settings.WEBHOOK_URL)
@@ -41,7 +39,6 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(periodic_subscription_check())
     asyncio.create_task(periodic_expiry_notify())
     yield
-    # Shutdown logic
     logger.info("Shutting down...")
     await bot.delete_webhook()
     await bot.session.close()
@@ -51,13 +48,11 @@ app = FastAPI(lifespan=lifespan)
 
 bot = Bot(token=settings.API_TOKEN)
 dp = Dispatcher()
-
 dp.include_router(handlers.router)
 
 
 @app.post("/webhook")
 async def webhook(request: Request):
-    """Handle Telegram webhook updates"""
     update_data = await request.json()
     update = types.Update(**update_data)
     await dp.feed_update(bot=bot, update=update)
@@ -128,14 +123,13 @@ async def payment_callback(
     if len(parts) > 3:
         subscription_days = int(parts[3])
     else:
-        subscription_days = 30  # fallback на случай старых платежей
+        subscription_days = 30
 
     now = datetime.utcfromtimestamp(order_timestamp)
     status = data.get("transactionStatus")
     reason_code = data.get("reasonCode")
     payment_id = order_reference
 
-    # Prepare response for WayForPay
     response_status = "accept"
     response_time = int(time.time())
     signature = generate_wfp_signature(
@@ -146,7 +140,6 @@ async def payment_callback(
     username = subscriber.username if subscriber else ""
 
     if status == "Approved":
-        # ... вместо 30 используем subscription_days ...
         if subscriber and subscriber.subscription_end and subscriber.subscription_end > now:
             new_subscription_end = subscriber.subscription_end + timedelta(days=subscription_days)
         else:
@@ -170,30 +163,7 @@ async def payment_callback(
         except Exception as e:
             logger.warning(f"Failed to send message to user {user_id}: {e}")
 
-    elif status == "Declined" and reason_code == 1122:
-        # Test payment
-        subscription_end = now + timedelta(minutes=5)
-        await update_subscriber_payment(
-            session=session,
-            telegram_id=user_id,
-            username=username,
-            subscription_type=0,
-            payment_date=now,
-            subscription_end=subscription_end,
-            status=SubscriptionStatus.ACTIVE.value,
-            payment_id=payment_id,
-        )
-        try:
-            await bot.send_message(
-                user_id,
-                "🧪 Test Pay Successfully! Access granted for 5 minutes.",
-            )
-            await add_user_to_group_and_send_invite(bot, user_id)
-        except Exception as e:
-            logger.warning(f"Failed to send message to user {user_id}: {e}")
-
     else:
-        # Any other declined payment
         await update_subscriber_declined(
             session=session,
             telegram_id=user_id,
@@ -210,7 +180,6 @@ async def payment_callback(
         except Exception as e:
             logger.warning(f"Failed to send message to user {user_id}: {e}")
 
-    # Always return confirmation to WayForPay
     return {
         "orderReference": order_reference,
         "status": response_status,
@@ -229,44 +198,8 @@ def generate_wfp_signature(
     return hmac.new(secret_key.encode(), sign_string.encode(), hashlib.md5).hexdigest()
 
 
-async def check_expired_subscriptions():
-    async for session in get_session():
-        now = datetime.utcnow()
-        logger.info(f"Поточний час UTC: {now}")
-        result = await session.execute(
-            select(Subscriber).where(
-                Subscriber.subscription_end != None,  # noqa
-                Subscriber.status == SubscriptionStatus.ACTIVE.value,
-            )
-        )
-        # ---------------------------------------------------------------------------------------------------------------------
-        # test part
-        all_active = result.scalars().all()
-        for sub in all_active:
-            logger.info(
-                f"User: {sub.telegram_id}, subscription_end: {sub.subscription_end}, status: {sub.status}"
-            )
-        result = await session.execute(
-            select(Subscriber).where(
-                Subscriber.subscription_end != None,  # noqa
-                Subscriber.subscription_end < now,
-                Subscriber.status == SubscriptionStatus.ACTIVE.value,
-            )
-        )
-        # end test part
-        # ---------------------------------------------------------------------------------------------------------------------
-        expired_subs = result.scalars().all()
-        for sub in expired_subs:
-            logger.info(
-                f"Истёкшая подписка: {sub.telegram_id}, end: {sub.subscription_end}, status: {sub.status}"
-            )
-            sub.status = SubscriptionStatus.EXPIRED.value
-        if expired_subs:
-            await session.commit()
-
-
 async def notify_users_about_expiry(bot: Bot):
-    """Уведомить пользователей, у которых подписка истекает через сутки."""
+    """Notify users whose subscription expires in 24 hours."""
     async for session in get_session():
         now = datetime.utcnow()
         tomorrow = now + timedelta(days=1)
@@ -295,7 +228,7 @@ async def notify_users_about_expiry(bot: Bot):
 
 
 async def ban_expired_users(bot: Bot):
-    """Забанить пользователей с истёкшей подпиской и отправить уведомление."""
+    """Ban users with expired subscriptions and notify them."""
     async for session in get_session():
         now = datetime.utcnow()
         result = await session.execute(
@@ -316,7 +249,6 @@ async def ban_expired_users(bot: Bot):
                 logger.warning(f"Failed to notify expired {sub.telegram_id}: {e}")
             try:
                 await bot.ban_chat_member(settings.GROUP_CHAT_ID, sub.telegram_id)
-                # await bot.unban_chat_member(settings.GROUP_CHAT_ID, sub.telegram_id)
                 logger.info(f"Banned user {sub.telegram_id} from group")
             except Exception as e:
                 logger.warning(f"Failed to ban user {sub.telegram_id}: {e}")
@@ -328,7 +260,6 @@ async def ban_expired_users(bot: Bot):
 async def periodic_subscription_check():
     while True:
         logger.info("Checking for expired subscriptions...")
-        # Ban expired users
         await ban_expired_users(bot)
         await asyncio.sleep(60)
 
@@ -336,7 +267,5 @@ async def periodic_subscription_check():
 async def periodic_expiry_notify():
     while True:
         logger.info("Checking for subscriptions expiring in 24h...")
-        # Notify users about expiring subscriptions
         await notify_users_about_expiry(bot)
-        # Ждём сутки (86400 секунд)
         await asyncio.sleep(86400)
