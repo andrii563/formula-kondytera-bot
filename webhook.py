@@ -214,7 +214,7 @@ def generate_wfp_signature(
 
 async def notify_users_about_expiry(bot: Bot):
     """Notify users whose subscription expires in 24 hours."""
-    async with get_session() as session:
+    async for session in get_session():
         now = datetime.utcnow()
         tomorrow = now + timedelta(days=1)
         result = await session.execute(
@@ -243,7 +243,7 @@ async def notify_users_about_expiry(bot: Bot):
 
 async def ban_expired_users(bot: Bot):
     """Ban users with expired subscriptions and notify them."""
-    async with get_session() as session:
+    async for session in get_session():
         now = datetime.utcnow()
         result = await session.execute(
             select(Subscriber).where(

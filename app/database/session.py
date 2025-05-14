@@ -1,5 +1,4 @@
 from typing import Any, AsyncGenerator
-from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -20,7 +19,6 @@ AsyncSessionLocal = sessionmaker(
 )
 
 
-@asynccontextmanager
 async def get_session() -> AsyncGenerator[Any, Any]:
     async with AsyncSessionLocal() as session:
         yield session
