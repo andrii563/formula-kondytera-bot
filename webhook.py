@@ -95,7 +95,7 @@ async def add_user_to_group_and_send_invite(bot: Bot, user_id: int):
         )
         await bot.send_message(
             user_id,
-            "Ось ваша персональна інвайт-силка до групи 👇",
+            "Ось ваша персональний інвайт до групи 👇",
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
                     [
