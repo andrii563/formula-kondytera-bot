@@ -34,6 +34,12 @@ bot = Bot(token=settings.API_TOKEN)
 dp = Dispatcher()
 dp.include_router(handlers.router)
 
+async def safe_polling():
+    try:
+        await dp.start_polling(bot)
+    except Exception as e:
+        logger.exception(f"Polling crashed: {e}")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,7 +49,7 @@ async def lifespan(app: FastAPI):
     # logger.info(f"Webhook set to {settings.WEBHOOK_URL}")
     asyncio.create_task(periodic_subscription_check())
     asyncio.create_task(periodic_expiry_notify())
-    asyncio.create_task(dp.start_polling(bot))
+    asyncio.create_task(safe_polling())
     yield
     logger.info("Shutting down...")
     # await bot.delete_webhook()
@@ -267,13 +273,19 @@ async def ban_expired_users(bot: Bot):
 
 async def periodic_subscription_check():
     while True:
-        logger.info("Checking for expired subscriptions...")
-        await ban_expired_users(bot)
+        try:
+            logger.info("🔁 Checking for expired subscriptions...")
+            await ban_expired_users(bot)
+        except Exception as e:
+            logger.exception(f"❌ Error in periodic_subscription_check: {e}")
         await asyncio.sleep(300)
 
 
 async def periodic_expiry_notify():
     while True:
-        logger.info("Checking for subscriptions expiring in 24h...")
-        await notify_users_about_expiry(bot)
+        try:
+            logger.info("🔁 Checking for subscriptions expiring in 24h...")
+            await notify_users_about_expiry(bot)
+        except Exception as e:
+            logger.exception(f"❌ Error in periodic_expiry_notify: {e}")
         await asyncio.sleep(86400)
