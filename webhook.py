@@ -30,33 +30,35 @@ DECLINE_REASONS = {
 }
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    logger.info("Starting bot setup...")
-    await setup_commands(bot)
-    await bot.set_webhook(url=settings.WEBHOOK_URL)
-    logger.info(f"Webhook set to {settings.WEBHOOK_URL}")
-    asyncio.create_task(periodic_subscription_check())
-    asyncio.create_task(periodic_expiry_notify())
-    yield
-    logger.info("Shutting down...")
-    await bot.delete_webhook()
-    await bot.session.close()
-
-
-app = FastAPI(lifespan=lifespan)
-
 bot = Bot(token=settings.API_TOKEN)
 dp = Dispatcher()
 dp.include_router(handlers.router)
 
 
-@app.post("/webhook")
-async def webhook(request: Request):
-    update_data = await request.json()
-    update = types.Update(**update_data)
-    await dp.feed_update(bot=bot, update=update)
-    return {"ok": True}
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting bot setup...")
+    await setup_commands(bot)
+    # await bot.set_webhook(url=settings.WEBHOOK_URL)
+    # logger.info(f"Webhook set to {settings.WEBHOOK_URL}")
+    asyncio.create_task(periodic_subscription_check())
+    asyncio.create_task(periodic_expiry_notify())
+    asyncio.create_task(dp.start_polling(bot))
+    yield
+    logger.info("Shutting down...")
+    # await bot.delete_webhook()
+    await bot.session.close()
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+# @app.post("/webhook")
+# async def webhook(request: Request):
+#     update_data = await request.json()
+#     update = types.Update(**update_data)
+#     await dp.feed_update(bot=bot, update=update)
+#     return {"ok": True}
 
 
 class WayForPayCallback(BaseModel):
@@ -140,8 +142,14 @@ async def payment_callback(
     username = subscriber.username if subscriber else ""
 
     if status == "Approved":
-        if subscriber and subscriber.subscription_end and subscriber.subscription_end > now:
-            new_subscription_end = subscriber.subscription_end + timedelta(days=subscription_days)
+        if (
+            subscriber
+            and subscriber.subscription_end
+            and subscriber.subscription_end > now
+        ):
+            new_subscription_end = subscriber.subscription_end + timedelta(
+                days=subscription_days
+            )
         else:
             new_subscription_end = now + timedelta(days=subscription_days)
         await update_subscriber_payment(
@@ -205,7 +213,7 @@ async def notify_users_about_expiry(bot: Bot):
         tomorrow = now + timedelta(days=1)
         result = await session.execute(
             select(Subscriber).where(
-                Subscriber.subscription_end != None, # noqa
+                Subscriber.subscription_end != None,  # noqa
                 Subscriber.status == SubscriptionStatus.ACTIVE.value,
                 Subscriber.subscription_end > now,
                 Subscriber.subscription_end <= tomorrow,
@@ -233,7 +241,7 @@ async def ban_expired_users(bot: Bot):
         now = datetime.utcnow()
         result = await session.execute(
             select(Subscriber).where(
-                Subscriber.subscription_end != None, # noqa
+                Subscriber.subscription_end != None,  # noqa
                 Subscriber.subscription_end < now,
                 Subscriber.status == SubscriptionStatus.ACTIVE.value,
             )
