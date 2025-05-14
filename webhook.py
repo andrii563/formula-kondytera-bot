@@ -171,7 +171,7 @@ async def payment_callback(
         try:
             await bot.send_message(
                 user_id,
-                f"✅ Payment successful! Access to the channel is granted until {new_subscription_end.strftime('%d.%m.%Y %H:%M')}.",
+                f"✅ Оплата успішна! Доступ до каналу надано до {new_subscription_end.strftime('%d.%m.%Y %H:%M')}.",
             )
             await add_user_to_group_and_send_invite(bot, user_id)
         except Exception as e:
@@ -189,7 +189,7 @@ async def payment_callback(
         try:
             await bot.send_message(
                 user_id,
-                f"❌ Payment failed: {error_explanation}",
+                f"❌ Платіж не пройшов: {error_explanation}",
             )
         except Exception as e:
             logger.warning(f"Failed to send message to user {user_id}: {e}")

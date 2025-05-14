@@ -131,6 +131,10 @@ async def handle_payment(query: CallbackQuery):
                 status="expired",
                 payment_id=None,
             )
+        else:
+            if subscriber.username != username:
+                subscriber.username = username
+                await session.commit()
         await send_payment_link(query, user_id, amount, subscription_days)
 
 
