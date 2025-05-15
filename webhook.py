@@ -59,12 +59,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-# @app.post("/webhook")
-# async def webhook(request: Request):
-#     update_data = await request.json()
-#     update = types.Update(**update_data)
-#     await dp.feed_update(bot=bot, update=update)
-#     return {"ok": True}
+@app.get("/")
+async def root():
+    return {"status": "ok"}
 
 
 class WayForPayCallback(BaseModel):
