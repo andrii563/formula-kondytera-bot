@@ -2,6 +2,7 @@ from aiogram import F, Router, Bot
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
 from aiogram.types import (
+    ChatJoinRequest,
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -77,8 +78,7 @@ async def handle_link_command(message: Message, bot: Bot):
         try:
             invite = await bot.create_chat_invite_link(
                 settings.GROUP_CHAT_ID,
-                member_limit=1,
-                creates_join_request=False,
+                creates_join_request=True,
                 expire_date=None,
             )
             await message.answer(
@@ -97,6 +97,19 @@ async def handle_link_command(message: Message, bot: Bot):
         except Exception as e:
             await message.answer("Не вдалося створити інвайт. Спробуйте пізніше.")
             logger.error(f"Error in creation invite link {message.from_user.id}: {e}")
+
+
+@router.chat_join_request()
+async def handle_join_request(event: ChatJoinRequest):
+    user_id = event.from_user.id
+    chat_id = event.chat.id
+
+    async for session in get_session():
+        subscriber = await get_subscriber(session, user_id)
+        if subscriber and subscriber.status == "active":
+            await event.bot.approve_chat_join_request(chat_id, user_id)
+        else:
+            await event.bot.decline_chat_join_request(chat_id, user_id)
 
 
 @router.callback_query(F.data.startswith("payment_"))

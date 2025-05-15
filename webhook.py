@@ -89,8 +89,7 @@ async def add_user_to_group_and_send_invite(bot: Bot, user_id: int):
     try:
         invite = await bot.create_chat_invite_link(
             settings.GROUP_CHAT_ID,
-            member_limit=1,
-            creates_join_request=False,
+            creates_join_request=True,
             expire_date=None,
         )
         await bot.send_message(
@@ -122,8 +121,6 @@ async def payment_callback(
         logger.warning(f"Raw body received: {data}")
         return {"status": "error"}
 
-    logger.info(f"Received payment callback: {data}")
-
     order_reference = data["orderReference"]
     parts = order_reference.split("_")
     user_id = int(parts[1])
@@ -146,6 +143,8 @@ async def payment_callback(
 
     subscriber = await get_subscriber(session, user_id)
     username = subscriber.username if subscriber else ""
+
+    logger.info(f"WayForPay callback: order={order_reference}, user_id={user_id}, status={status}")
 
     if status == "Approved":
         if (
